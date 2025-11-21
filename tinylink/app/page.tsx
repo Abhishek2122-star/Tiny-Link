@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [url, setUrl] = useState('');
   const [code, setCode] = useState('');
   const [msg, setMsg] = useState('');
+  const [msgType, setMsgType] = useState<'success' | 'error'>('success');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -51,119 +52,218 @@ export default function Dashboard() {
       if (res.ok) {
         setUrl('');
         setCode('');
-        setMsg('Created!');
+        setMsg('✓ Link created successfully!');
+        setMsgType('success');
         setTimeout(() => setMsg(''), 3000);
         fetchLinks();
       } else {
         const data = await res.json();
-        setMsg(data.error || 'Failed');
+        setMsg(`✕ ${data.error || 'Failed to create link'}`);
+        setMsgType('error');
       }
     } catch (err) {
-      setMsg('Error');
+      setMsg('✕ Error creating link');
+      setMsgType('error');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (c: string) => {
-    if (!confirm('Delete?')) return;
+    if (!confirm('Are you sure you want to delete this link?')) return;
     try {
-      await fetch(`/api/links/${c}`, { method: 'DELETE' });
-      fetchLinks();
+      const res = await fetch(`/api/links/${c}`, { method: 'DELETE' });
+      if (res.ok) {
+        setMsg('✓ Link deleted');
+        setMsgType('success');
+        setTimeout(() => setMsg(''), 3000);
+        fetchLinks();
+      } else {
+        setMsg('✕ Failed to delete');
+        setMsgType('error');
+      }
     } catch (err) {
-      alert('Error');
+      setMsg('✕ Error deleting link');
+      setMsgType('error');
     }
   };
 
+  const copyToClipboard = (c: string) => {
+    const fullUrl = `${window.location.origin}/${c}`;
+    navigator.clipboard.writeText(fullUrl);
+    setMsg('✓ Copied to clipboard!');
+    setMsgType('success');
+    setTimeout(() => setMsg(''), 2000);
+  };
+
   return (
-    <div className="min-h-screen bg-blue-50">
-      <header className="bg-white shadow">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <h1 className="text-4xl font-bold">TinyLink</h1>
-          <p className="text-gray-600">URL Shortener</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* Header */}
+      <header className="bg-white shadow-lg border-b border-gray-200">
+        <div className="container-max py-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            TinyLink
+          </h1>
+          <p className="text-gray-600 mt-2">Create, manage, and track your shortened URLs</p>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="container-max py-12">
+        {/* Alert Messages */}
         {msg && (
-          <div className={`mb-4 p-4 rounded ${msg.includes('Failed') || msg.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+          <div className={`mb-6 animate-slide-in ${msgType === 'success' ? 'alert-success' : 'alert-error'}`}>
             {msg}
           </div>
         )}
 
-        <div className="grid md:grid-cols-3 gap-8">
-          <form onSubmit={handleSubmit} className="md:col-span-1 bg-white p-6 rounded shadow">
-            <h2 className="text-xl font-bold mb-4">Create Link</h2>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="https://..."
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                disabled={submitting}
-                className="w-full px-4 py-2 border rounded"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Code (optional)"
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                disabled={submitting}
-                maxLength={8}
-                className="w-full px-4 py-2 border rounded"
-              />
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-              >
-                {submitting ? 'Creating...' : 'Create'}
-              </button>
-            </div>
-          </form>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Create Link Form */}
+          <div className="md:col-span-1">
+            <div className="card-hover">
+              <h2 className="text-2xl font-bold mb-6 text-gray-900">Create New Link</h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="label">Long URL</label>
+                  <input
+                    type="url"
+                    placeholder="https://example.com/very/long/url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    disabled={submitting}
+                    className="input-field"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Must be a valid HTTP/HTTPS URL</p>
+                </div>
 
-          <div className="md:col-span-2 bg-white p-6 rounded shadow">
-            <h2 className="text-xl font-bold mb-4">Links</h2>
-            {loading ? (
-              <p>Loading...</p>
-            ) : links.length === 0 ? (
-              <p className="text-gray-600">No links</p>
-            ) : (
-              <table className="w-full text-sm">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="px-4 py-2 text-left">Code</th>
-                    <th className="px-4 py-2 text-left">URL</th>
-                    <th className="px-4 py-2 text-center">Clicks</th>
-                    <th className="px-4 py-2 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {links.map((link) => (
-                    <tr key={link.id} className="border-b hover:bg-gray-50">
-                      <td className="px-4 py-2 font-mono">{link.short_code}</td>
-                      <td className="px-4 py-2 truncate">{link.original_url}</td>
-                      <td className="px-4 py-2 text-center font-bold">{link.total_clicks}</td>
-                      <td className="px-4 py-2 text-center">
-                        <a href={`/code/${link.short_code}`} className="px-2 py-1 bg-gray-100 rounded text-xs mr-2">
-                          Stats
-                        </a>
-                        <button
-                          onClick={() => handleDelete(link.short_code)}
-                          className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                <div>
+                  <label className="label">Short Code (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., docs, api, blog"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    disabled={submitting}
+                    maxLength={8}
+                    className="input-field"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">6-8 alphanumeric characters only</p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-primary w-full"
+                >
+                  {submitting ? (
+                    <>
+                      <span className="spinner mr-2">⟳</span>
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Short Link'
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* Links List */}
+          <div className="md:col-span-2">
+            <div className="card-hover">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Your Links</h2>
+                <button
+                  onClick={fetchLinks}
+                  className="btn-secondary text-sm"
+                >
+                  ↻ Refresh
+                </button>
+              </div>
+
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="spinner text-4xl text-blue-600 mb-4">↻</div>
+                  <p className="text-gray-600">Loading links...</p>
+                </div>
+              ) : links.length === 0 ? (
+                <div className="text-center py-12 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg">
+                  <p className="text-gray-600 text-lg">No links created yet</p>
+                  <p className="text-gray-500 text-sm mt-1">Create your first shortened link above!</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th className="text-left">Code</th>
+                        <th className="text-left">URL</th>
+                        <th className="text-center">Clicks</th>
+                        <th className="text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {links.map((link) => (
+                        <tr key={link.id}>
+                          <td className="font-mono font-bold text-blue-600">{link.short_code}</td>
+                          <td>
+                            <a
+                              href={link.original_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 truncate max-w-xs block"
+                              title={link.original_url}
+                            >
+                              {link.original_url.substring(0, 50)}
+                              {link.original_url.length > 50 ? '...' : ''}
+                            </a>
+                          </td>
+                          <td className="text-center">
+                            <span className="badge-info">{link.total_clicks}</span>
+                          </td>
+                          <td className="text-right">
+                            <button
+                              onClick={() => copyToClipboard(link.short_code)}
+                              className="btn-small btn-secondary text-xs mr-2"
+                              title="Copy short URL"
+                            >
+                              📋 Copy
+                            </button>
+                            <a
+                              href={`/code/${link.short_code}`}
+                              className="btn-small bg-indigo-100 text-indigo-700 hover:bg-indigo-200 text-xs mr-2 inline-block"
+                            >
+                              📊 Stats
+                            </a>
+                            <button
+                              onClick={() => handleDelete(link.short_code)}
+                              className="btn-small btn-danger text-xs"
+                            >
+                              🗑️ Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 mt-16">
+        <div className="container-max py-8 text-center text-gray-600 text-sm">
+          <p>© 2025 TinyLink. Built with Next.js, TypeScript, and Tailwind CSS</p>
+          <p className="mt-2">
+            <a href="https://github.com/Abhishek2122-star/Tiny-Link" className="text-blue-600 hover:text-blue-700">
+              View on GitHub
+            </a>
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
