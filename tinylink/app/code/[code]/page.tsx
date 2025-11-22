@@ -125,7 +125,17 @@ export default function StatsPage({ params }: { params: Promise<{ code: string }
               ← Back to Dashboard
             </Link>
             <button
-              onClick={() => navigator.clipboard.writeText(`${window.location.origin}/${link.short_code}`)}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                  navigator.clipboard.writeText(`${window.location.origin}/${link.short_code}`).then(() => {
+                    alert('Short URL copied to clipboard!');
+                  }).catch(() => {
+                    alert('Failed to copy. Please try again.');
+                  });
+                } else {
+                  alert('Copy not supported in this browser');
+                }
+              }}
               className="btn-primary flex-1"
             >
               📋 Copy Short URL
