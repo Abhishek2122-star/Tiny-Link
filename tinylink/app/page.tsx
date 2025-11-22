@@ -88,13 +88,28 @@ export default function Dashboard() {
     }
   };
 
-  const copyToClipboard = (c: string) => {
-    const fullUrl = `${window.location.origin}/${c}`;
+  // const copyToClipboard = (c: string) => {
+  //   const fullUrl = `${window.location.origin}/${c}`;
+  //   navigator.clipboard.writeText(fullUrl);
+  //   setMsg('✓ Copied to clipboard!');
+  //   setMsgType('success');
+  //   setTimeout(() => setMsg(''), 2000);
+  // };
+  "use client";
+
+const copyToClipboard = (c: string) => {
+  const fullUrl = `${window.location.origin}/${c}`;
+  
+  if (navigator?.clipboard?.writeText) {
     navigator.clipboard.writeText(fullUrl);
-    setMsg('✓ Copied to clipboard!');
-    setMsgType('success');
-    setTimeout(() => setMsg(''), 2000);
-  };
+    setMsg("✓ Copied to clipboard!");
+    setMsgType("success");
+    setTimeout(() => setMsg(""), 2000);
+  } else {
+    alert("Clipboard API not supported.");
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
