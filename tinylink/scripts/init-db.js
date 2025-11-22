@@ -8,6 +8,7 @@
  * Requires DATABASE_URL environment variable to be set
  */
 
+require('dotenv').config({ path: require('path').join(__dirname, '../.env.local') });
 const { Pool } = require('pg');
 
 const pool = new Pool({
